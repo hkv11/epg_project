@@ -1,0 +1,112 @@
+DATA LOADER DOCUMENTATION
+==========================
+File: data_loader.py
+Project: EPG - Exploring TF Activity in Neuroblastoma ADRN-MES Identity
+
+
+OVERVIEW
+--------
+data_loader.py is responsible for loading, cleaning, and merging all raw .txt
+data files from both the DepMap and KOCAK datasets. It produces clean,
+analysis-ready DataFrames that are used by all downstream analysis scripts.
+
+
+RAW FILES
+---------
+DepMap (cell line data):
+  - depmap_meta.txt        : Sample metadata — condition name, MYCN status, ADRN/MES classification
+  - depmap_GE_scaled.txt   : Z-score normalized gene expression (18,675 genes x 49 samples)
+  - depmap_TF Activity.txt : TF activity scores (763 TFs x 49 samples)
+  - depmap_GD.txt          : CRISPR-Cas9 gene dependency scores (18,444 genes x 49 samples)
+
+KOCAK (patient tumor data):
+  - KOCAK_meta.txt         : Sample metadata — condition name, MYCN status, ADRN/MES classification, clinical info
+  - KOCAK_GE_scaled.txt    : Z-score scaled gene expression (19,861 genes x 476 samples)
+  - KOCAK_TF Activity.txt  : TF activity scores (762 TFs x 476 samples)
+  - KOCAK_survival.txt     : Survival data — EFS and OS in days with binary event status
+
+
+LINKING COLUMNS
+---------------
+All files are linked by a sample identifier column:
+  - depmap_meta uses "condition" (e.g. CHP212)
+  - depmap_GE, depmap_TF, depmap_GD use "Unnamed: 0" (renamed to "condition" on load)
+  - KOCAK_meta uses "condition" (e.g. P252038210001_1_2)
+  - KOCAK_GE, KOCAK_TF use "Unnamed: 0" (renamed to "condition" on load)
+  - KOCAK_survival uses "condition"
+
+
+PRE-MERGE INVESTIGATION FINDINGS
+----------------------------------
+Before finalizing the loading strategy, we investigated ID mismatches between
+meta files and data files:
+
+DepMap findings:
+  - 16 samples present in depmap_meta are missing from depmap_GE and depmap_TF
+  - All 16 of these samples have NaN for AM_class (no ADRN/MES classification)
+  - These samples are useless for our analysis and are dropped
+  - 13 samples in depmap_meta are missing from depmap_GD (dependency data)
+    - 8 of these overlap with the 16 NaN AM_class samples (dropped anyway)
+    - 5 have valid AM_class but simply lack GD data — kept for GE/TF analysis,
+      absent from dependency analysis only
+
+KOCAK findings:
+  - 475 out of 476 samples match between KOCAK_meta and KOCAK_TF/GE
+  - 1 sample in meta has no corresponding TF/GE data — dropped via inner join
+  - KOCAK_survival matches all 476 meta samples perfectly
+  - Data is very clean overall
+
+
+CLEANING STRATEGY
+-----------------
+Both datasets follow the same logic:
+
+Step 1 — Drop unclassified samples:
+  Samples with NaN in AM_class are removed from meta first. These samples have
+  no ADRN/MES label and cannot contribute to any part of the analysis.
+
+Step 2 — Use cleaned meta as the base:
+  The cleaned meta DataFrame acts as the master list of valid samples. All
+  other files are merged onto this base using inner joins, ensuring only
+  samples present in both meta and the data file are retained.
+
+Step 3 — Merge data files:
+  GE, TF, and GD/survival files are each merged onto the cleaned meta
+  separately using inner joins on the "condition" column. This produces
+  self-contained DataFrames where each row has both metadata and data.
+
+  For DepMap:
+    - depmap_merged_ge  : meta + gene expression (33 samples)
+    - depmap_merged_tf  : meta + TF activity     (33 samples)
+    - depmap_merged_gd  : meta + gene dependency (36 samples, inner join)
+
+  For KOCAK:
+    - kocak_merged_ge       : meta + gene expression (475 samples)
+    - kocak_merged_tf       : meta + TF activity     (475 samples)
+    - kocak_merged_survival : meta + survival data   (475 samples)
+
+
+OUTPUT
+------
+load_all() returns a dictionary with six clean DataFrames:
+  {
+    "depmap_ge"      : DepMap meta + gene expression
+    "depmap_tf"      : DepMap meta + TF activity
+    "depmap_gd"      : DepMap meta + gene dependency
+    "kocak_ge"       : KOCAK meta + gene expression
+    "kocak_tf"       : KOCAK meta + TF activity
+    "kocak_survival" : KOCAK meta + survival data
+  }
+
+These are imported by downstream analysis scripts using:
+  from data_loader import load_all
+  datasets = load_all()
+
+
+NOTES
+-----
+- The AM_class column is the primary classification used throughout the project.
+  AM_class_stringent provides a stricter classification (excludes HYBRID samples)
+  and will be used in sensitivity analyses.
+- No imputation is performed — missing data is handled by exclusion only.
+- All data remains z-score scaled as provided in the raw files.
