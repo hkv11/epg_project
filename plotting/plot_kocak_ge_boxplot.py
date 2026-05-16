@@ -64,6 +64,9 @@ def draw_box(ax, gene_name, q_val, title):
 draw_box(axes[0], top_adrn, q_adrn, f"ADRN-associated: {top_adrn}")
 draw_box(axes[1], top_mes,  q_mes,  f"MES-associated: {top_mes}")
 
+fig.suptitle("KOCAK — Top Differential Gene Expression (ADRN vs MES)",
+             fontsize=13, fontweight="bold")
+
 plt.tight_layout()
 plt.savefig("results/plots/kocak_boxplot_GE.png", dpi=300, bbox_inches="tight")
 plt.close()

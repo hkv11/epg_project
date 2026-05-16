@@ -20,10 +20,8 @@ df = pd.read_csv("results/depmap_GE_differential.csv")
 df["neg_log10_q"] = -np.log10(df["q_value"].replace(0, 1e-12))
 df["color"] = df["significant"].map({"Yes": SIG_COLOR, "No": INSIG_COLOR})
 
-sig = df[df["significant"] == "Yes"].copy()
-sig["label_score"] = sig["neg_log10_q"] * sig["abs_difference"]
-top_adrn = sig[sig["difference"] > 0].nlargest(1, "label_score")
-top_mes  = sig[sig["difference"] < 0].nlargest(1, "label_score")
+top_adrn = df[df["difference"] > 0].nlargest(1, "abs_difference")
+top_mes  = df[df["difference"] < 0].nlargest(1, "abs_difference")
 to_label = pd.concat([top_adrn, top_mes])
 
 fig, ax = plt.subplots(figsize=(9, 6))
