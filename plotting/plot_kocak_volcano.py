@@ -5,11 +5,6 @@ import matplotlib.patches as mpatches
 from adjustText import adjust_text
 import os
 
-# ─────────────────────────────────────────────
-# Volcano plot — KOCAK TF activity differential
-# Run from project root: python plotting/plot_kocak_volcano.py
-# ─────────────────────────────────────────────
-
 os.makedirs("results/plots", exist_ok=True)
 
 SIG_COLOR   = "#E84B4B"

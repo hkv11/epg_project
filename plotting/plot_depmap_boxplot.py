@@ -5,11 +5,6 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data_loader import load_all
 
-# ─────────────────────────────────────────────
-# Boxplot — DepMap top ADRN and MES TFs side by side
-# Run from project root: python plotting/plot_depmap_boxplot.py
-# ─────────────────────────────────────────────
-
 os.makedirs("results/plots", exist_ok=True)
 
 ADRN_COLOR = "#E84B4B"
@@ -21,11 +16,9 @@ depmap_tf = datasets["depmap_tf"]
 
 sig = tf_df[tf_df["significant"] == "Yes"]
 
-# Top ADRN-associated: highest positive difference
 top_adrn = sig[sig["difference"] > 0].nlargest(1, "abs_difference")["TF"].values[0]
 q_adrn   = sig[sig["TF"] == top_adrn]["q_value"].values[0]
 
-# Top MES-associated: highest negative difference
 top_mes  = sig[sig["difference"] < 0].nlargest(1, "abs_difference")["TF"].values[0]
 q_mes    = sig[sig["TF"] == top_mes]["q_value"].values[0]
 

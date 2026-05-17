@@ -7,17 +7,9 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data_loader import load_all
 
-# ─────────────────────────────────────────────
-# LOAD DATA
-# ─────────────────────────────────────────────
-
 datasets  = load_all()
 depmap_ge = datasets["depmap_ge"]
 
-# ─────────────────────────────────────────────
-# SPLIT INTO ADRN AND MES GROUPS
-# Using AM_class_stringent to exclude HYBRID samples
-# ─────────────────────────────────────────────
 
 adrn = depmap_ge[depmap_ge["AM_class_stringent"] == "ADRN"]
 mes  = depmap_ge[depmap_ge["AM_class_stringent"] == "MES"]
@@ -26,21 +18,12 @@ print(f"ADRN cell lines: {adrn.shape[0]}")
 print(f"MES cell lines:  {mes.shape[0]}")
 print(f"HYBRID excluded: {(depmap_ge['AM_class_stringent'] == 'HYBRID').sum()}")
 
-# ─────────────────────────────────────────────
-# IDENTIFY GENE COLUMNS
-# ─────────────────────────────────────────────
-
 meta_cols = ["condition", "ModelID", "MYCN_cn", "MYCN_status",
              "ADRN.score", "MES.score", "AM.score",
              "AM_class", "AM_class_stringent"]
 
 gene_cols = [col for col in depmap_ge.columns if col not in meta_cols]
 print(f"\nNumber of TF genes to analyse: {len(gene_cols)}")
-
-# ─────────────────────────────────────────────
-# DIFFERENTIAL GENE EXPRESSION ANALYSIS
-# Mann-Whitney U test for each gene
-# ─────────────────────────────────────────────
 
 results = []
 
@@ -65,10 +48,6 @@ for gene in gene_cols:
         "p_value":    p_value,
     })
 
-# ─────────────────────────────────────────────
-# APPLY FDR CORRECTION (Benjamini-Hochberg)
-# ─────────────────────────────────────────────
-
 results_df = pd.DataFrame(results)
 
 reject, q_values, _, _ = multipletests(
@@ -79,10 +58,6 @@ results_df["p_value"]     = results_df["p_value"].round(6)
 results_df["significant"] = ["Yes" if r else "No" for r in reject]
 results_df["abs_difference"] = results_df["difference"].abs()
 results_df = results_df.sort_values("abs_difference", ascending=False).reset_index(drop=True)
-
-# ─────────────────────────────────────────────
-# SUMMARY
-# ─────────────────────────────────────────────
 
 total       = len(results_df)
 significant = (results_df["significant"] == "Yes").sum()
@@ -96,10 +71,6 @@ print(f"  → Higher expressed in MES:   {mes_genes}")
 print(f"\nTop 10 most differential TF genes:")
 print(results_df[["gene", "mean_ADRN", "mean_MES", "difference",
                    "p_value", "q_value", "significant"]].head(10).to_string(index=False))
-
-# ─────────────────────────────────────────────
-# SAVE RESULTS
-# ─────────────────────────────────────────────
 
 results_df.to_csv("results/depmap_GE_differential.csv", index=False)
 print("\nResults saved to results/depmap_GE_differential.csv")

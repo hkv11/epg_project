@@ -8,17 +8,9 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data_loader import load_all
 
-# ─────────────────────────────────────────────
-# LOAD DATA
-# ─────────────────────────────────────────────
-
 datasets       = load_all()
 kocak_tf       = datasets["kocak_tf"]
 kocak_survival = datasets["kocak_survival"]
-
-# ─────────────────────────────────────────────
-# MERGE TF ACTIVITY WITH SURVIVAL DATA
-# ─────────────────────────────────────────────
 
 merged = kocak_tf.merge(
     kocak_survival[["condition", "EFS_d", "EFS_bin", "OS_d", "OS_bin"]],
@@ -26,10 +18,6 @@ merged = kocak_tf.merge(
 )
 
 print(f"Patients after merge: {merged.shape[0]}")
-
-# ─────────────────────────────────────────────
-# IDENTIFY TF COLUMNS
-# ─────────────────────────────────────────────
 
 meta_cols = ["condition", "MYCN_status", "MYCN_bin", "INSS",
              "INSS_bin_4vall", "Age_d", "Age_bin_18m", "Cell_Name_M",
@@ -39,17 +27,6 @@ meta_cols = ["condition", "MYCN_status", "MYCN_bin", "INSS",
 
 tf_cols = [col for col in merged.columns if col not in meta_cols]
 print(f"Number of TFs to analyse: {len(tf_cols)}")
-
-# ─────────────────────────────────────────────
-# SURVIVAL ANALYSIS
-# For each TF:
-#   - Split patients into High/Low by median TF activity
-#   - Log-rank test for EFS and OS (p-value)
-#   - Cox model for EFS and OS (hazard ratio)
-#
-# HR > 1 = high TF activity = worse survival (poor outcome)
-# HR < 1 = high TF activity = better survival (good outcome)
-# ─────────────────────────────────────────────
 
 results = []
 
@@ -106,10 +83,6 @@ for tf in tf_cols:
         "OS_p_value":  os_logrank.p_value,
     })
 
-# ─────────────────────────────────────────────
-# APPLY FDR CORRECTION
-# ─────────────────────────────────────────────
-
 results_df = pd.DataFrame(results)
 
 _, efs_q, _, _ = multipletests(results_df["EFS_p_value"], alpha=0.05, method="fdr_bh")
@@ -130,10 +103,6 @@ for col in ["EFS_p_value", "OS_p_value", "EFS_q_value", "OS_q_value"]:
 
 results_df = results_df.sort_values("EFS_q_value", ascending=True).reset_index(drop=True)
 
-# ─────────────────────────────────────────────
-# SUMMARY
-# ─────────────────────────────────────────────
-
 efs_sig  = (results_df["EFS_significant"]  == "Yes").sum()
 os_sig   = (results_df["OS_significant"]   == "Yes").sum()
 both_sig = (results_df["both_significant"] == "Yes").sum()
@@ -151,10 +120,6 @@ print(f"Significant in both:            {both_sig}")
 print(f"\nTop 10 TFs by EFS q-value:")
 print(results_df[["TF", "EFS_HR", "EFS_q_value", "EFS_significant",
                    "OS_HR", "OS_q_value", "OS_significant"]].head(10).to_string(index=False))
-
-# ─────────────────────────────────────────────
-# SAVE RESULTS
-# ─────────────────────────────────────────────
 
 results_df.to_csv("results/kocak_TF_survival.csv", index=False)
 print("\nResults saved to results/kocak_TF_survival.csv")

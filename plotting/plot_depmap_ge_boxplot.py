@@ -5,11 +5,6 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data_loader import load_all
 
-# ─────────────────────────────────────────────
-# Boxplot — DepMap top ADRN and MES genes (GE)
-# Run from project root: python plotting/plot_depmap_ge_boxplot.py
-# ─────────────────────────────────────────────
-
 os.makedirs("results/plots", exist_ok=True)
 
 ADRN_COLOR = "#E84B4B"

@@ -5,11 +5,6 @@ import matplotlib.patches as mpatches
 from adjustText import adjust_text
 import os
 
-# ─────────────────────────────────────────────
-# Volcano plot — DepMap TF activity differential
-# Run from project root: python plotting/plot_depmap_volcano.py
-# ─────────────────────────────────────────────
-
 os.makedirs("results/plots", exist_ok=True)
 
 SIG_COLOR   = "#E84B4B"
@@ -20,7 +15,6 @@ df = pd.read_csv("results/depmap_TF_differential.csv")
 df["neg_log10_q"] = -np.log10(df["q_value"].replace(0, 1e-12))
 df["color"] = df["significant"].map({"Yes": SIG_COLOR, "No": INSIG_COLOR})
 
-# Top 1 label per side by label_score = neg_log10_q * abs_difference
 top_adrn = df[df["difference"] > 0].nlargest(1, "abs_difference")
 top_mes  = df[df["difference"] < 0].nlargest(1, "abs_difference")
 to_label = pd.concat([top_adrn, top_mes])

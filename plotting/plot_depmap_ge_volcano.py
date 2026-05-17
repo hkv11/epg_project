@@ -5,11 +5,6 @@ import matplotlib.patches as mpatches
 from adjustText import adjust_text
 import os
 
-# ─────────────────────────────────────────────
-# Volcano plot — DepMap GE differential
-# Run from project root: python plotting/plot_depmap_ge_volcano.py
-# ─────────────────────────────────────────────
-
 os.makedirs("results/plots", exist_ok=True)
 
 SIG_COLOR   = "#E84B4B"

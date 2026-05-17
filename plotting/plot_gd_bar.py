@@ -3,12 +3,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import os
 
-# ─────────────────────────────────────────────
-# GD Bar plot — differential gene dependency
-# Top 20 TFs by absolute difference (ADRN vs MES)
-# Run from project root: python plotting/plot_gd_bars.py
-# ─────────────────────────────────────────────
-
 os.makedirs("results/plots", exist_ok=True)
 
 TOP_N      = 20
@@ -28,12 +22,10 @@ ax.barh(top["gene"], top["difference"],
 
 ax.axvline(0, color="black", linewidth=0.8, linestyle="-", alpha=0.4)
 
-# Add padding so bars don't touch the y-axis
 x_min = top["difference"].min()
 x_max = top["difference"].max()
 ax.set_xlim(x_min * 1.25, x_max * 1.25)
 
-# Annotate at end of each bar
 for _, row in top.iterrows():
     diff = row["difference"]
     x_offset = 0.02 if diff > 0 else -0.02

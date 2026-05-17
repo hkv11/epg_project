@@ -6,18 +6,11 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data_loader import load_all
 
-# ─────────────────────────────────────────────
-# Kaplan-Meier — top survival TF
-# EFS and OS side by side
-# Run from project root: python plotting/plot_survival_km.py
-# ─────────────────────────────────────────────
-
 os.makedirs("results/plots", exist_ok=True)
 
 HIGH_COLOR = "#E84B4B"
 LOW_COLOR  = "#4B9BE8"
 
-# Load survival results to find top TF
 surv_results = pd.read_csv("results/kocak_TF_survival.csv")
 efs_poor     = surv_results[
     (surv_results["EFS_significant"] == "Yes") &
@@ -26,7 +19,6 @@ efs_poor     = surv_results[
 top_tf = efs_poor.nlargest(1, "EFS_HR")["TF"].values[0]
 print(f"Top survival TF: {top_tf}")
 
-# Load raw data
 datasets       = load_all()
 kocak_tf       = datasets["kocak_tf"]
 kocak_survival = datasets["kocak_survival"]
@@ -36,7 +28,6 @@ merged = kocak_tf.merge(
     on="condition", how="inner"
 )
 
-# Split by median
 median     = merged[top_tf].median()
 merged["group"] = (merged[top_tf] > median).map({True: "High", False: "Low"})
 high = merged[merged["group"] == "High"]
@@ -57,7 +48,6 @@ for ax, duration_col, event_col, label in [
     kmf_high.plot_survival_function(ax=ax, color=HIGH_COLOR, linewidth=2, ci_show=False)
     kmf_low.plot_survival_function(ax=ax,  color=LOW_COLOR,  linewidth=2, ci_show=False)
 
-    # Log-rank p-value
     result = logrank_test(
         high[duration_col], low[duration_col],
         event_observed_A=high[event_col],

@@ -7,17 +7,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data_loader import load_all
 
-# ─────────────────────────────────────────────
-# LOAD DATA
-# ─────────────────────────────────────────────
-
 datasets   = load_all()
 depmap_tf  = datasets["depmap_tf"]
-
-# ─────────────────────────────────────────────
-# SPLIT INTO ADRN AND MES GROUPS
-# Using AM_class_stringent to exclude HYBRID samples
-# ─────────────────────────────────────────────
 
 adrn = depmap_tf[depmap_tf["AM_class_stringent"] == "ADRN"]
 mes  = depmap_tf[depmap_tf["AM_class_stringent"] == "MES"]
@@ -26,21 +17,12 @@ print(f"ADRN cell lines: {adrn.shape[0]}")
 print(f"MES cell lines:  {mes.shape[0]}")
 print(f"HYBRID excluded: {(depmap_tf['AM_class_stringent'] == 'HYBRID').sum()}")
 
-# ─────────────────────────────────────────────
-# IDENTIFY TF COLUMNS
-# ─────────────────────────────────────────────
-
 meta_cols = ["condition", "ModelID", "MYCN_cn", "MYCN_status",
              "ADRN.score", "MES.score", "AM.score",
              "AM_class", "AM_class_stringent"]
 
 tf_cols = [col for col in depmap_tf.columns if col not in meta_cols]
 print(f"\nNumber of TFs to analyse: {len(tf_cols)}")
-
-# ─────────────────────────────────────────────
-# DIFFERENTIAL TF ACTIVITY ANALYSIS
-# Mann-Whitney U test for each TF
-# ─────────────────────────────────────────────
 
 results = []
 
@@ -65,13 +47,6 @@ for tf in tf_cols:
         "p_value":    p_value,
     })
 
-# ─────────────────────────────────────────────
-# APPLY FDR CORRECTION (Benjamini-Hochberg)
-# Corrects for multiple testing across 763 TFs
-# q_value < 0.05 means at most 5% of significant
-# results are expected to be false positives
-# ─────────────────────────────────────────────
-
 results_df = pd.DataFrame(results)
 
 reject, q_values, _, _ = multipletests(
@@ -82,10 +57,6 @@ results_df["p_value"]     = results_df["p_value"].round(6)
 results_df["significant"] = ["Yes" if r else "No" for r in reject]
 results_df["abs_difference"] = results_df["difference"].abs()
 results_df = results_df.sort_values("abs_difference", ascending=False).reset_index(drop=True)
-
-# ─────────────────────────────────────────────
-# SUMMARY
-# ─────────────────────────────────────────────
 
 total       = len(results_df)
 significant = (results_df["significant"] == "Yes").sum()
@@ -99,10 +70,6 @@ print(f"  → Higher in MES:         {mes_tfs}")
 print(f"\nTop 10 most differential TFs:")
 print(results_df[["TF", "mean_ADRN", "mean_MES", "difference",
                    "p_value", "q_value", "significant"]].head(10).to_string(index=False))
-
-# ─────────────────────────────────────────────
-# SAVE RESULTS
-# ─────────────────────────────────────────────
 
 results_df.to_csv("results/depmap_TF_differential.csv", index=False)
 print("\nResults saved to results/depmap_TF_differential.csv")
